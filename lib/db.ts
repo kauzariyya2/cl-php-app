@@ -1,16 +1,19 @@
 // Database connection using Neon PostgreSQL serverless driver
 import { neon } from "@neondatabase/serverless"
 
-const sql = neon(process.env.DATABASE_URL!)
+export const sql = neon(process.env.DATABASE_URL!)
 
 export async function query<T>(sqlQuery: string, params?: unknown[]): Promise<T> {
-  const result = await sql(sqlQuery, params as any[])
-  return result as T
+  const rows = await sql(sqlQuery, params as any[])
+  return rows as T
 }
 
 export async function queryOne<T>(sqlQuery: string, params?: unknown[]): Promise<T | null> {
-  const rows = await query<T[]>(sqlQuery, params)
-  return rows[0] ?? null
+  const rows = await sql(sqlQuery, params as any[])
+  return first(rows) as T | null
 }
 
-export { sql }
+// Helper to get single row from query result
+export function first<T>(rows: T[]): T | null {
+  return rows[0] ?? null
+}

@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server"
 import { loginSchema } from "@/lib/validations"
 import { verifyPassword, createSession } from "@/lib/auth"
-import { queryOne } from "@/lib/db"
+import { sql } from "@/lib/db"
 
-interface UserRecord {
+interface AdminRecord {
   id: number
   email: string
   password: string
   name: string | null
-  role: string
 }
 
 export async function POST(request: Request) {
@@ -22,25 +21,24 @@ export async function POST(request: Request) {
 
     const { email, password } = validatedData.data
 
-    const user = await queryOne<UserRecord>('SELECT id, email, password, name, role FROM "User" WHERE email = $1', [
-      email,
-    ])
+    const rows = await sql`SELECT id, email, password, name FROM "Admin" WHERE email = ${email}`
+    const admin = rows[0] as AdminRecord | undefined
 
-    if (!user) {
+    if (!admin) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
     }
 
-    const isValidPassword = await verifyPassword(password, user.password)
+    const isValidPassword = await verifyPassword(password, admin.password)
 
     if (!isValidPassword) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
     }
 
     await createSession({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
+      id: admin.id,
+      email: admin.email,
+      name: admin.name,
+      role: "admin",
     })
 
     return NextResponse.json({ success: true })
